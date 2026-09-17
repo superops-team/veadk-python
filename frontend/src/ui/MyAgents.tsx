@@ -74,11 +74,14 @@ export interface MyAgentCardData {
   specificationLabel: string;
   specification: string;
   isMine?: boolean;
+  agentCategory?: RuntimeAgentType;
   region?: string;
   runtime?: {
     runtimeId: string;
+    mpaInstanceId?: string;
     region: string;
     currentVersion?: number | null;
+    agentCategory?: RuntimeAgentType;
     canDelete: boolean;
     canManage?: boolean;
     canPublish?: boolean;
@@ -231,7 +234,12 @@ export function formatSandboxRemainingTime(
   return t("myAgents.sandboxRemaining", { hours, minutes });
 }
 
-function runtimeToAgent(runtime: CloudRuntime, t: TFunction<"ui">): MyAgentCardData {
+function runtimeToAgent(
+  runtime: CloudRuntime,
+  t: TFunction<"ui">,
+  agentCategory: RuntimeAgentType = "general",
+): MyAgentCardData {
+  const category = runtime.agentCategory ?? agentCategory;
   return {
     id: runtime.runtimeId,
     name: runtime.name,
@@ -240,10 +248,13 @@ function runtimeToAgent(runtime: CloudRuntime, t: TFunction<"ui">): MyAgentCardD
     specificationLabel: t("myAgents.creator"),
     specification: formatResourceCreator(runtime.author),
     isMine: runtime.isMine,
+    agentCategory: category,
     runtime: {
       runtimeId: runtime.runtimeId,
+      mpaInstanceId: runtime.mpaInstanceId,
       region: runtime.region,
       currentVersion: runtime.currentVersion,
+      agentCategory: category,
       canDelete: runtime.canDelete,
       canManage: runtime.canManage,
       canPublish: runtime.canPublish,
@@ -306,6 +317,7 @@ function runtimeDetailTargetForCard(
     isMine: true,
     runtime: {
       runtimeId: target.runtimeId,
+      mpaInstanceId: target.mpaInstanceId,
       region: target.region,
       currentVersion: target.currentVersion,
       canDelete: false,
@@ -332,7 +344,7 @@ async function loadRuntimeAgents(
   const requestKey = `${agentCategory}:${runtimeScope}:${region}:${nextToken}`;
   const cached = runtimePageCache.get(requestKey);
   if (cached && cached.expiresAt > Date.now()) {
-    onList(cached.page.runtimes.map((runtime) => runtimeToAgent(runtime, t)));
+    onList(cached.page.runtimes.map((runtime) => runtimeToAgent(runtime, t, agentCategory)));
     return cached.page.nextToken;
   }
   if (cached) runtimePageCache.delete(requestKey);
@@ -357,7 +369,7 @@ async function loadRuntimeAgents(
     page,
     expiresAt: Date.now() + RUNTIME_PAGE_CACHE_TTL_MS,
   });
-  onList(page.runtimes.map((runtime) => runtimeToAgent(runtime, t)));
+  onList(page.runtimes.map((runtime) => runtimeToAgent(runtime, t, agentCategory)));
   return page.nextToken;
 }
 
@@ -641,7 +653,7 @@ export interface MyAgentsProps {
   canCreatePersonalAgents: boolean;
   canUpdate: boolean;
   runtimeScope: RuntimeScope;
-  onCreateAgent: (region: string) => void;
+  onCreateAgent: (region: string, agentCategory: RuntimeAgentType) => void;
   onOpenCodexProjectUpload?: () => void;
   onUseAgent: (agent: MyAgentCardData) => Promise<void>;
   onViewAgentDetails: (agent: MyAgentCardData) => void;
@@ -1198,8 +1210,8 @@ export function MyAgents({
     : loadingSandboxAgents && sandboxAgents.length === 0;
   const showEmpty = !showInitialLoading && visibleAgents.length === 0;
   let createAgent: (() => void) | undefined;
-  if (activeType === "general" && canCreateRuntimeAgents) {
-    createAgent = () => onCreateAgent(region);
+  if ((activeType === "general" || activeType === "mpa") && canCreateRuntimeAgents) {
+    createAgent = () => onCreateAgent(region, activeType);
   } else if (isSandboxMyAgentType(activeType) && canCreatePersonalAgents) {
     createAgent = () => onCreateSandboxAgent(activeType);
   }
