@@ -297,14 +297,18 @@ it("passes PG and OpenViking selections to creation and keeps secrets out of ses
   await act(async () => button("next").click());
   await edit("openvikingUrl", "https://api.example.test/openviking");
   await edit("openvikingResourceId", "ov-test");
+  await edit("openvikingApiKey", "private-ov-key-for-test");
+  expect(field("openvikingApiKey").type).toBe("password");
   await act(async () => submitButton().click());
   expect(vi.mocked(api.startMpaCreation).mock.calls[0][0]).toMatchObject({
     pgHost: "db.example",
     pgPort: "5433",
     openvikingUrl: "https://api.example.test/openviking",
     openvikingResourceId: "ov-test",
+    openvikingApiKey: "private-ov-key-for-test",
   });
   const saved = sessionStorage.getItem("mpa-create:cn-beijing")!;
+  expect(saved).not.toContain("private-ov-key-for-test");
   expect(saved).not.toContain("apiKey");
   expect(saved).not.toContain("password");
 });
@@ -315,11 +319,19 @@ it("blocks malformed OpenViking settings before submission", async () => {
   });
   await mount();
   await goToFinal();
+  expect(submitButton().disabled).toBe(false);
+  await edit("openvikingApiKey", "test-key");
+  expect(submitButton().disabled).toBe(true);
+  await edit("openvikingApiKey", "");
   await edit("openvikingUrl", "http://insecure.example.test");
   expect(submitButton().disabled).toBe(true);
   await edit("openvikingUrl", "https://api.example.test:443/openviking");
   expect(submitButton().disabled).toBe(true);
   await edit("openvikingUrl", "https://api.example.test/openviking");
+  expect(submitButton().disabled).toBe(true);
+  await edit("openvikingResourceId", "ov-test");
+  expect(submitButton().disabled).toBe(true);
+  await edit("openvikingApiKey", "test-ov-key");
   expect(submitButton().disabled).toBe(false);
 });
 function submitButton() {

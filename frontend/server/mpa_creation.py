@@ -42,6 +42,7 @@ class CreationRequest(BaseModel):
     pgPort: str = Field(default="", max_length=5)
     openvikingUrl: str = Field(default="", max_length=1024)
     openvikingResourceId: str = Field(default="", max_length=128)
+    openvikingApiKey: str = Field(default="", max_length=512, repr=False)
 
     @field_validator("runtimeImage", "workerImage")
     @classmethod
@@ -104,8 +105,11 @@ def mount_mpa_creation_routes(
         try:
             path, config = profile(body.region)
             payload = body.model_dump(mode="json")
-            resources = validate_creation_resources(payload)
             with_creation_resources(config, payload)
+            openviking_api_key = payload.pop("openvikingApiKey")
+            resources = validate_creation_resources(
+                {**payload, "openvikingApiKey": openviking_api_key}
+            )
             images = config.image_defaults()
             for field in ("runtimeImage", "workerImage"):
                 if payload[field]:
@@ -123,6 +127,7 @@ def mount_mpa_creation_routes(
                 config_path=path,
                 timeout=config.managed.timeout_seconds,
                 images=images,
+                secrets={"openvikingApiKey": openviking_api_key},
             )
         except ConfigurationError as exc:
             raise HTTPException(400, str(exc)) from None

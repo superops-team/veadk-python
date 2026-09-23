@@ -87,6 +87,13 @@ def validate_creation_resources(values: dict[str, str]) -> dict[str, str]:
     ):
         raise ConfigurationError("Enter a valid PostgreSQL port")
     url, resource_id = selected["openvikingUrl"], selected["openvikingResourceId"]
+    api_key = str(values.get("openvikingApiKey", ""))
+    if any((url, resource_id, api_key)) and not all(
+        (url, resource_id, api_key.strip())
+    ):
+        raise ConfigurationError(
+            "Enter an OpenViking URL, resource ID and API Key together"
+        )
     if url:
         try:
             parsed = urlsplit(url)
@@ -283,6 +290,7 @@ class Profile:
     template: dict | None
     admin_url: str
     shared_url: str
+    openviking_enabled: bool | None = None
 
     def image_defaults(self):
         runtime_image = self.managed.runtime.image or (
@@ -381,10 +389,17 @@ def with_creation_resources(profile: Profile, resources: dict[str, str]) -> Prof
         managed.runtime.env.update(
             PGHOST=admin.host or host, PGPORT=str(admin.port or 5432)
         )
+    for key in list(managed.runtime.env):
+        if key.startswith("OPENVIKING_"):
+            managed.runtime.env.pop(key)
     if selected["openvikingUrl"]:
         managed.runtime.env["OPENVIKING_URL"] = selected["openvikingUrl"]
         managed.runtime.env["OPENVIKING_RESOURCE_ID"] = selected["openvikingResourceId"]
-    return replace(profile, managed=managed)
+        managed.runtime.env["OPENVIKING_API_KEY"] = resources["openvikingApiKey"]
+        managed.runtime.env["OPENVIKING_USER"] = "default"
+    return replace(
+        profile, managed=managed, openviking_enabled=bool(selected["openvikingUrl"])
+    )
 
 
 def _secret(name: str) -> str:

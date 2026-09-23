@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
@@ -83,9 +85,45 @@ def test_creation_request_rejects_invalid_dependency_fields():
         {"pgPort": "not-a-port"},
         {"openvikingUrl": "https://api.example.test/?token=private"},
         {"openvikingResourceId": "ov bad"},
+        {
+            "openvikingUrl": "https://api.example.test/openviking",
+            "openvikingResourceId": "ov-test",
+        },
+        {"openvikingApiKey": "test-key"},
     ):
         from pydantic import ValidationError
         import pytest
 
         with pytest.raises(ValidationError):
             CreationRequest.model_validate({**base, **invalid})
+
+
+def test_creation_key_is_passed_separately_from_stored_payload(tmp_path, monkeypatch):
+    from frontend.server import mpa_creation
+    from tests.integrations.mpa_managed.test_config import split_profile_file
+
+    monkeypatch.setattr(mpa_creation, "load_volcengine_credentials", lambda *_: None)
+    path = split_profile_file(tmp_path, monkeypatch)
+    monkeypatch.setenv("VEADK_MPA_CREATE_CONFIG", str(path))
+    service = CreationTasks(tmp_path / "tasks.db")
+    service.start = AsyncMock(return_value={"taskId": "test-task"})
+    app = FastAPI()
+    mount_mpa_creation_routes(app, owner=lambda request: "local", service=service)
+    with TestClient(app) as client:
+        response = client.post(
+            "/web/mpa-creation/tasks",
+            json={
+                "requestId": "11111111-1111-4111-8111-111111111111",
+                "agentId": "mi-test",
+                "description": "",
+                "region": "cn-beijing",
+                "openvikingUrl": "https://api.example.test/openviking",
+                "openvikingResourceId": "ov-test",
+                "openvikingApiKey": "private-ov-key-for-test",
+            },
+        )
+    assert response.status_code == 202
+    assert "private-ov-key-for-test" not in response.text
+    args, kwargs = service.start.await_args
+    assert "openvikingApiKey" not in args[1]
+    assert kwargs["secrets"] == {"openvikingApiKey": "private-ov-key-for-test"}

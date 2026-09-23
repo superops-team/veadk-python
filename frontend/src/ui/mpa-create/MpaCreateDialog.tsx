@@ -80,6 +80,7 @@ export function MpaCreateDialog({
   const key = (name: string) => `myAgents.mpaCreate.${name}`;
   const [saved] = useState(() => initial(region));
   const [input, setInput] = useState(saved.input);
+  const [openvikingApiKey, setOpenvikingApiKey] = useState("");
   const [step, setStep] = useState(
     saved.submitted || saved.taskId
       ? 2
@@ -113,6 +114,7 @@ export function MpaCreateDialog({
   const openvikingValid = validOpenViking(
     input.openvikingUrl,
     input.openvikingResourceId,
+    openvikingApiKey,
   );
   useEffect(() => {
     if (submitted || taskId) return;
@@ -231,7 +233,10 @@ export function MpaCreateDialog({
     const controller = new AbortController();
     action.current = controller;
     try {
-      const value = await startMpaCreation(input, controller.signal);
+      const value = await startMpaCreation(
+        { ...input, openvikingApiKey },
+        controller.signal,
+      );
       if (!alive.current || controller.signal.aborted) return;
       persist(value.taskId);
       setTaskId(value.taskId);
@@ -512,6 +517,21 @@ export function MpaCreateDialog({
                             ...previous,
                             openvikingResourceId: event.target.value,
                           }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      {t(key("openvikingApiKey"))}
+                      <input
+                        type="password"
+                        name="openvikingApiKey"
+                        value={openvikingApiKey}
+                        maxLength={512}
+                        disabled={busy || running || task?.state === "succeeded"}
+                        autoComplete="off"
+                        spellCheck={false}
+                        onChange={(event) =>
+                          setOpenvikingApiKey(event.target.value)
                         }
                       />
                     </label>

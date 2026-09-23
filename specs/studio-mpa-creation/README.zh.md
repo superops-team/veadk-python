@@ -19,7 +19,7 @@ VeADK 负责托管 YAML 解析、云服务/数据库编排、有权限约束的�
 
 - **CON-15 — Studio 身份复用：**云上 Studio 部署在第二次发布中将 UserPool 名称、客户端名称、Identity 地域和公网 MPA 回调保存为四项 `VEADK_STUDIO_MPA_*` 函数环境变量。托管配置加载在 YAML 未指定身份值时使用这组完整的服务端配置，并在云写入前拒绝不完整配置与显式冲突（包括 `managed.runtime.env`）；固定子进程读取相同值。没有这组配置时，独立 CLI/YAML 行为不变。新 Runtime 获得 `MPA_USER_POOL_NAME`、`MPA_USER_POOL_CLIENT_NAME`、`IDENTITY_CALLBACK_URL`、`IDENTITY_REGION`；浏览器请求和任务持久化均不包含这些值。已有云上 Studio 需要重新部署，已有 MPA Runtime 不变。参见[身份复用设计](../../prd-spec/features/studio-mpa-identity-reuse/2026-09-23-deploy-identity-reuse.zh.md)。
 
-- **CON-1 — 配置：** 服务端选择 `VEADK_MPA_CREATE_CONFIG`（默认 `mpa-create.config.yaml`）。`managed.version: 1` 接受短横线/下划线别名，拒绝未知 managed 字段。一个配置服务一个匹配的 `cn-*` 地域。`from-runtime` 与 `template-file` 互斥，否则通过平铺镜像/模型/PG 字段构建模板。`database-admin-url-env` 与 `shared-database-url-env` 在服务端解析 PostgreSQL URL。配置/模板文件最多 256 KiB。HTTP 客户端不能选择路径、命令、账号或凭据。配置检查仅限本地，不证明真实访问权限。
+- **CON-1 — 配置：** 服务端选择 `VEADK_MPA_CREATE_CONFIG`（默认 `mpa-create.config.yaml`）。`managed.version: 1` 接受短横线/下划线别名，拒绝未知 managed 字段。一个配置服务一个匹配的 `cn-*` 地域。`from-runtime` 与 `template-file` 互斥，否则通过平铺镜像/模型/PG 字段构建模板。`database-admin-url-env` 与 `shared-database-url-env` 在服务端解析 PostgreSQL URL。配置/模板文件最多 256 KiB。HTTP 客户端不能选择路径、命令、账号或部署/PG 凭据；CON-11 允许本次创建提供 OpenViking API Key。配置检查仅限本地，不证明真实访问权限。
 - **CON-2 — 准备：** 运维提供 PostgreSQL 实例/注册库/登录用户/属主、IAM 角色、镜像、模型权限和网络连通性。先核验云账号及数据库权限，再准备账号 VPC/子网、APIG/IM Gateway、worker、独立业务库、Skill Space 和 Runtime。显式接管 APIG 要求配置匹配 VPC。不得假设新 VPC 可访问私网 PostgreSQL。等待应用就绪前释放账号锁。
 - **CON-3 — 身份：** 持久身份为已核验账号 + 地域 + 稳定智能体 ID。原生归属标记、哈希、client token 和会话 advisory lock 决定复用。拒绝无关同名资源及未完成配置冲突。在原生部署记录保存 `studio_owner`；其他所属用户或无该所属身份的已有记录不能被隐式接管。CLI 使用 `cli`，Studio 使用授权主体的哈希。
 - **CON-4 — 初始化：** 使用真实 Runtime 元数据及共享 APIG 初始化，不进行旧占位 endpoint 回填。要求公私网、KeyAuth、MPA 标签、绑定 worker/Skill Space 及元数据/IM 启动初始化。参考 Runtime 模板移除来源身份、渠道凭据、Skill Space 和 worker 身份。成功要求平台 Ready 及应用 `/readiness`。
@@ -77,7 +77,7 @@ CON-10 元数据可见性：区分初始化元数据缺失和显式冲突。具�
 
 ## 三步创建输入
 
-**CON-11 — 前置资源：**参见[三步创建设计](../../prd-spec/features/mpa-agent-oneclick-provision/2026-09-23-studio-mpa-three-step-creation.zh.md)。鉴权后的配置检查额外返回管理员连接的非密钥 `pgHost` 和 `pgPort` 默认值。POST 可选接收 `pgHost`、`pgPort`、`openvikingUrl` 和 `openvikingResourceId`，长度上限依次为 255、5、1024、128 字符，均不含密钥。PG 主机和端口必须同时提供，并在部署前与配置的管理员连接目标一致。OpenViking 地址必须为 HTTPS，不能包含嵌入凭据、端口、查询串或片段；提供资源 ID 时必须有地址，且 ID 匹配 `ov-[a-zA-Z0-9_-]+`。非空选项随任务保留并应用于新 Runtime 的环境变量；留空保留配置或参考 Runtime 的值。PG 密码和 OpenViking API Key 始终由服务端管理，不进入浏览器或任务 payload。控制台链接仅用于导航，不是服务端点，也不会创建资源。省略新字段的旧客户端、持久化任务和 CLI 调用保持原行为。
+**CON-11 — 前置资源：**参见[三步创建设计](../../prd-spec/features/mpa-agent-oneclick-provision/2026-09-23-studio-mpa-three-step-creation.zh.md)和[OpenViking 密钥扩展](../../prd-spec/features/mpa-agent-oneclick-provision/2026-09-23-studio-mpa-openviking-key.zh.md)。鉴权后的配置检查额外返回管理员连接的非密钥 `pgHost` 和 `pgPort` 默认值。POST 可选接收 `pgHost`、`pgPort`、`openvikingUrl` 和 `openvikingResourceId`，长度上限依次为 255、5、1024、128 字符，均不含密钥。PG 主机和端口必须同时提供，并在部署前与配置的管理员连接目标一致。OpenViking 地址必须为 HTTPS，不能包含嵌入凭据、端口、查询串或片段；OpenViking 地址、资源 ID 和 API Key 三项必须同时填写；资源 ID 匹配 `ov-[a-zA-Z0-9_-]+`。非空的非密钥选项随任务保留。OpenViking 三项全空时，即使模板或参考 Runtime 含有旧值，新 Runtime 也不含 `OPENVIKING_*` 变量。POST 还可选接收最多 512 字符的 `openvikingApiKey`。遮罩后的密钥只存在浏览器内存中，经鉴权 POST 与子进程标准输入传递，仅在本次创建时连同地址、资源 ID 和 `OPENVIKING_USER=default` 一起注入；任务接口不返回，浏览器会话存储及 SQLite 均不保存。浏览器或服务端重启后重试失败任务时需重新输入密钥。PG 密码仍由服务端管理。Studio 创建流程仅在启用 OpenViking 时注入 `OPENVIKING_USER=default`。旧 CLI 保持自己的配置行为。控制台链接仅用于导航，不是服务端点，也不会创建资源。旧 CLI 不受影响；Studio 请求的 OpenViking 字段全空时，新 Runtime 不含相关环境变量。
 
 ## 两套 PostgreSQL Workspace
 

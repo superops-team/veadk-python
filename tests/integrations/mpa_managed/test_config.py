@@ -203,6 +203,7 @@ def test_creation_resources_override_runtime_environment_without_changing_profil
             "pgPort": "5432",
             "openvikingUrl": "https://api.vikingdb.cn-beijing.volces.com/openviking",
             "openvikingResourceId": "ov-example",
+            "openvikingApiKey": "test-ov-key",
         },
     )
     assert selected.managed.runtime.env == {
@@ -210,17 +211,35 @@ def test_creation_resources_override_runtime_environment_without_changing_profil
         "PGPORT": "5432",
         "OPENVIKING_URL": "https://api.vikingdb.cn-beijing.volces.com/openviking",
         "OPENVIKING_RESOURCE_ID": "ov-example",
+        "OPENVIKING_API_KEY": "test-ov-key",
+        "OPENVIKING_USER": "default",
     }
     assert profile.managed.runtime.env == {}
     assert "fake" not in str(selected.managed.runtime.env)
 
-    changed_url = with_creation_resources(
+    assert selected.openviking_enabled is True
+
+
+def test_creation_resources_inject_openviking_key_only_into_runtime_env(
+    tmp_path, monkeypatch
+):
+    profile = load_profile(profile_file(tmp_path, monkeypatch))
+    profile.managed.runtime.env["OPENVIKING_API_KEY"] = "configured-key"
+    selected = with_creation_resources(
         profile,
         {
-            "openvikingUrl": "https://new.example.test/openviking",
+            "openvikingUrl": "https://api.example.test/openviking",
+            "openvikingResourceId": "ov-test",
+            "openvikingApiKey": "private-ov-key-for-test",
         },
     )
-    assert changed_url.managed.runtime.env["OPENVIKING_RESOURCE_ID"] == ""
+    assert (
+        selected.managed.runtime.env["OPENVIKING_API_KEY"] == "private-ov-key-for-test"
+    )
+    assert profile.managed.runtime.env["OPENVIKING_API_KEY"] == "configured-key"
+    without_override = with_creation_resources(profile, {"openvikingApiKey": ""})
+    assert without_override.openviking_enabled is False
+    assert "OPENVIKING_API_KEY" not in without_override.managed.runtime.env
 
 
 @pytest.mark.parametrize(
@@ -232,6 +251,12 @@ def test_creation_resources_override_runtime_environment_without_changing_profil
         {"openvikingUrl": "https://example.test:443/openviking"},
         {"openvikingUrl": "https://user:private@example.test/openviking"},
         {"openvikingResourceId": "ov-example"},
+        {"openvikingUrl": "https://example.test/openviking"},
+        {"openvikingApiKey": "test-ov-key"},
+        {
+            "openvikingUrl": "https://example.test/openviking",
+            "openvikingResourceId": "ov-test",
+        },
     ],
 )
 def test_creation_resources_reject_unsafe_or_incompatible_values(
