@@ -16,9 +16,9 @@
 
 Deploys a prebuilt mpa-agent image to VeFaaS behind APIG (key auth), seeds the
 external PostgreSQL ``mpa_meta`` row so the runtime skips ``GetMpaInstanceConf``,
-injects the runtime env (PostgreSQL + OpenViking as external parameters, identity
-adapted via ``IDENTITY_STARTUP_ENABLED=false`` + ``csi-<account_id>``), and
-verifies the instance is Studio-connectable over A2A. The veadk-version
+injects the runtime env (PostgreSQL + OpenViking as external parameters, with
+startup identity initialization enabled), and verifies the instance is
+Studio-connectable over A2A. The veadk-version
 mpa-agent needs no control-plane ``mi-*`` record.
 """
 
@@ -452,6 +452,24 @@ def _load_config_default_map(
 @click.option("--max-instance", type=int, default=1)
 @click.option("--identity-region", default="cn-beijing")
 @click.option(
+    "--user-pool-name",
+    required=True,
+    envvar="MPA_USER_POOL_NAME",
+    help="Identity UserPool name reused by the MPA Runtime.",
+)
+@click.option(
+    "--user-pool-client-name",
+    required=True,
+    envvar="MPA_USER_POOL_CLIENT_NAME",
+    help="Identity UserPool client name reused by the MPA Runtime.",
+)
+@click.option(
+    "--identity-callback-url",
+    required=True,
+    envvar="IDENTITY_CALLBACK_URL",
+    help="Public Studio callback URL ending in /oauth/callback.",
+)
+@click.option(
     "--apig-instance-id",
     default="",
     help=(
@@ -505,6 +523,9 @@ def create(
     min_instance: int,
     max_instance: int,
     identity_region: str,
+    user_pool_name: str,
+    user_pool_client_name: str,
+    identity_callback_url: str,
     apig_instance_id: str,
     openviking_url: str,
     openviking_resource_id: str,
@@ -568,6 +589,9 @@ def create(
         agentkit_tool_region=agentkit_tool_region,
         skill_space_id=skill_space_id,
         identity_region=identity_region,
+        user_pool_name=user_pool_name,
+        user_pool_client_name=user_pool_client_name,
+        identity_callback_url=identity_callback_url,
         openviking_url=openviking_url,
         openviking_resource_id=openviking_resource_id,
         openviking_api_key=openviking_api_key,
