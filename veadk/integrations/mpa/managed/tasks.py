@@ -230,7 +230,7 @@ class CreationTasks:
             )
             process = await asyncio.shield(spawn)
             data = {
-                "config": str(config_path),
+                "config": None if config_path is None else str(config_path),
                 "agentId": payload["agentId"],
                 "description": payload["description"],
                 "owner": owner,

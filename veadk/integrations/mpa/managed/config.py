@@ -1,4 +1,4 @@
-"""Shared YAML contract for CLI and Studio managed MPA provisioning."""
+"""Validated profiles for CLI YAML and built-in Studio MPA provisioning."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from pydantic import (
 from sqlalchemy.engine import make_url
 
 from .network import NetworkOptions
+from .studio_profile import studio_profile_values
 
 ADMIN_DATABASE_NAME = "mpa_admin_db"
 ADMIN_WORKSPACE_NAME = "mpa_admin_workspace"
@@ -492,15 +493,23 @@ def _read_configuration_file(path: Path, *, template: bool = False) -> str:
         ) from None
 
 
-def load_profile(path: str | Path, *, region: str = "") -> Profile:
+def load_studio_profile(*, region: str = "") -> Profile:
+    """Load the code-owned Studio profile without a configuration file."""
+    return load_profile(None, region=region)
+
+
+def load_profile(path: str | Path | None, *, region: str = "") -> Profile:
     try:
-        file = Path(path)
-        try:
-            values = yaml.safe_load(_read_configuration_file(file))
-        except yaml.YAMLError:
-            raise ConfigurationError(
-                "Invalid YAML in MPA creation configuration; check its syntax"
-            ) from None
+        file = Path(path) if path is not None else None
+        if file is None:
+            values = studio_profile_values()
+        else:
+            try:
+                values = yaml.safe_load(_read_configuration_file(file))
+            except yaml.YAMLError:
+                raise ConfigurationError(
+                    "Invalid YAML in MPA creation configuration; check its syntax"
+                ) from None
         if not isinstance(values, dict) or not isinstance(values.get("managed"), dict):
             raise ConfigurationError(
                 "Configure the managed section in VEADK_MPA_CREATE_CONFIG"
@@ -568,6 +577,10 @@ def load_profile(path: str | Path, *, region: str = "") -> Profile:
                 )
         template = None
         if managed.template_file:
+            if file is None:
+                raise ConfigurationError(
+                    "Built-in Studio profile cannot use a template file"
+                )
             template_path = file.parent / managed.template_file
             try:
                 template = json.loads(
@@ -629,5 +642,7 @@ def load_profile(path: str | Path, *, region: str = "") -> Profile:
         ) from None
     except Exception:
         raise ConfigurationError(
-            "Unable to load MPA configuration; check YAML, template and network settings"
+            "Unable to load MPA configuration; check server settings"
+            if path is None
+            else "Unable to load MPA configuration; check YAML, template and network settings"
         ) from None

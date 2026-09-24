@@ -71,6 +71,37 @@ def test_raw_child_errors_never_reach_task_response(tmp_path):
     asyncio.run(run())
 
 
+def test_studio_task_sends_builtin_profile_marker_to_child(tmp_path):
+    import json
+
+    async def run():
+        service = CreationTasks(tmp_path / "tasks.sqlite3")
+        received = tmp_path / "profile.json"
+        code = (
+            "import json,sys,pathlib; "
+            "data=json.loads(sys.stdin.read()); "
+            f"pathlib.Path({str(received)!r}).write_text(json.dumps(data['config'])); "
+            "print('MPA_EVENT '+json.dumps({'result': "
+            "{'runtime_id':'r-test','skill_space_id':'ss-test',"
+            "'gateway_id':'gw-test','agent_id':'mi-test',"
+            "'region':'cn-beijing','state':'ready'}}))"
+        )
+        service.command = lambda: [sys.executable, "-c", code]
+        payload = {
+            "requestId": "99999999-9999-4999-8999-999999999999",
+            "agentId": "mi-test",
+            "description": "",
+            "region": "cn-beijing",
+        }
+        task = await service.start("owner", payload, config_path=None, timeout=60)
+        await asyncio.gather(*service.running.values())
+        assert service.get("owner", task["taskId"])["state"] == "succeeded"
+        assert json.loads(received.read_text()) is None
+        await service.close()
+
+    asyncio.run(run())
+
+
 def test_nonsecret_resource_choices_reach_child_and_retain_request_identity(tmp_path):
     import json
 

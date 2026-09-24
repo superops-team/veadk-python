@@ -4,10 +4,48 @@ import pytest
 import yaml
 
 from veadk.integrations.mpa.managed.config import (
-    load_profile,
-    with_creation_resources,
     ConfigurationError,
+    PostgresWorkspaces,
+    load_profile,
+    load_studio_profile,
+    with_creation_resources,
 )
+
+
+def test_studio_profile_uses_builtin_beijing_defaults_without_yaml(monkeypatch):
+    monkeypatch.setenv("VEADK_MPA_CREATE_CONFIG", "/missing/private-profile.yaml")
+    monkeypatch.setenv("VEADK_MPA_CONFIG_MODEL_AGENT_API_KEY", "test-model-key")
+    profile = load_studio_profile(region="cn-beijing")
+
+    assert profile.values["account_id"] == "2112682748"
+    assert profile.values["model_api_key"] == "test-model-key"
+    postgres = profile.managed.postgres
+    assert postgres is not None
+    assert postgres.mode == "auto"
+    assert postgres.bootstrap_path == "/tmp/veadk-studio/mpa-pg-bootstrap.sqlite3"
+    assert profile.managed.network.vpc_id == "vpc-iior17eqo0lc74o8cuqfopoj"
+    assert profile.managed.apig.adopt_id == "gd72bh4cnjkrkkoplj2ig"
+    assert profile.managed.worker.reference_id == "t-yeuujqfldstkidoad4p0"
+    assert profile.summary()["configured"] is True
+    assert "test-model-key" not in str(profile.summary())
+
+
+def test_standalone_postgres_bootstrap_path_keeps_adk_default():
+    assert (
+        PostgresWorkspaces(mode="auto").bootstrap_path
+        == ".adk/mpa-pg-bootstrap.sqlite3"
+    )
+
+
+def test_studio_profile_requires_model_key_and_rejects_other_regions(monkeypatch):
+    monkeypatch.delenv("VEADK_MPA_CONFIG_MODEL_AGENT_API_KEY", raising=False)
+    with pytest.raises(
+        ConfigurationError, match="VEADK_MPA_CONFIG_MODEL_AGENT_API_KEY"
+    ):
+        load_studio_profile(region="cn-beijing")
+    monkeypatch.setenv("VEADK_MPA_CONFIG_MODEL_AGENT_API_KEY", "test-model-key")
+    with pytest.raises(ConfigurationError, match="selected region"):
+        load_studio_profile(region="cn-shanghai")
 
 
 def profile_file(tmp_path, monkeypatch, **managed):
@@ -302,6 +340,7 @@ def test_adoption_requires_explicit_network_before_mutations(tmp_path, monkeypat
 
 def test_cli_managed_dry_run_never_calls_cloud(tmp_path, monkeypatch):
     from click.testing import CliRunner
+
     from veadk.cli.cli_mpa import mpa
     from veadk.integrations.mpa.managed import service
 
