@@ -1636,6 +1636,7 @@
       "reload": "重新检查",
       "submit": "开始创建",
       "retry": "重试创建",
+      "newAgent": "新建另一个智能体",
       "close": "关闭",
       "cancel": "取消创建",
       "confirmCancel": "确认取消",

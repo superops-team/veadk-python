@@ -1636,6 +1636,7 @@
       "reload": "Check again",
       "submit": "Start creation",
       "retry": "Retry creation",
+      "newAgent": "Create another agent",
       "close": "Close",
       "cancel": "Cancel creation",
       "confirmCancel": "Confirm cancellation",

@@ -4,7 +4,7 @@
 
 - 组件 ID：`studio-mpa-creation`
 - 状态：active
-- 修订日期：2026-09-23
+- 修订日期：2026-09-24
 - 设计及证据：[Studio MPA 创建](../../prd-spec/features/mpa-agent-oneclick-provision/2026-09-20-studio-mpa-creation.zh.md)
 - 所属代码：`veadk/integrations/mpa/managed/`、`frontend/server/mpa_creation.py`、`frontend/src/adk/mpaCreation.ts`、`frontend/src/ui/mpa-create/`；CLI 和目录接入。
 - 测试：`tests/integrations/mpa_managed/`、`frontend/tests/mpaCreation.test.tsx`。
@@ -27,7 +27,7 @@ VeADK 负责托管 YAML 解析、云服务/数据库编排、有权限约束的�
 - **CON-6 — 生命周期：** 状态为 `running`、`cancelling`、`succeeded`、`failed`、`cancelled`。提交/恢复进入 `running`；显式取消进入 `cancelling`，再到 `cancelled`；超时/失败进入 `failed`。成功任务不重跑。阶段为 `queued`、`checking`、`network`、`gateway`、`worker`、`database`、`skills`、`deploying`、`verifying`；阶段表示最近观察进度，不是另一套状态机。查询/提交时核验已退出的监管进程。恢复保留原请求和智能体 ID。
 - **CON-7 — 取消：** 使用当前 VeADK Python 执行固定子进程模块。取消、截止时间或服务端关闭时终止子进程，最多等待 3 秒，再强制终止/回收，随后报告终态。默认截止时间 1800 秒（60–7200）。保留持久云资源，包括结果未知的进行中请求。取消不是回滚，重试使用登记意图/token。本流程不创建需要删除的临时调试 Runtime。
 - **CON-8 — 数据/安全：**内置 Studio 使用 `/tmp/veadk-studio/mpa-creation.sqlite3`（服务端可用 `VEADK_MPA_TASK_DB` 覆盖）持久化所属用户哈希、不含密钥的输入、状态/阶段、安全结果和监管进程 PID，权限为 0600。这是针对云端代码目录只读问题而明确采用的临时、实例本地方案：重启可能丢失历史，多个实例不能依赖共享任务限制或锁。独立调用方显式构造服务时仍沿用 `.adk/mpa-creation.sqlite3` 约定。每次操作后关闭连接。无自动历史过期。原生 PostgreSQL 表保持 `mpa_account_network`、`mpa_account_apig`、`mpa_agent_deployment`；须使用直连/会话池。每次重读 STS 文件；Runtime/网络/APIG/worker 共用已核验账号的凭据。协议消息最多 16 KiB 并按白名单校验。不转发原始子进程输出、SDK 错误、环境转储、数据库 URL 或 Runtime 密钥。参见[临时可写状态修复](../../prd-spec/bugfixes/studio-mpa-writable-state/2026-09-23-use-temporary-state.zh.md)。
-- **CON-9 — UI：** 火山引擎的 MPA 筛选下，有智能体管理权限时展示创建卡片，含空列表。窗口显示固定地域、原有生成的 `mi-[0-9a-f]{24}` 只读 ID、描述和资源计划。三步分别展示基础信息、PostgreSQL 自动准备和 OpenViking；仅第三步提交。POST 前保存请求身份，提交后锁定输入，确保响应丢失后安全重试。卸载时中止轮询并忽略迟到响应，保留服务端工作，重开时从会话存储恢复。成功后刷新原地域。复用本地化 BaseUI/Studio 组件、键盘/输入法行为及语义主题变量。`ModalLayout.footer` 是可选 React 节点：省略保留原操作，`null` 隐藏页脚；原调用者不变。
+- **CON-9 — UI：** 火山引擎的 MPA 筛选下，有智能体管理权限时展示创建卡片，含空列表。窗口显示固定地域、原有生成的 `mi-[0-9a-f]{24}` 只读 ID、描述和资源计划。三步分别展示基础信息、PostgreSQL 自动准备和 OpenViking；仅第三步提交。POST 前保存请求身份，提交后锁定输入，确保响应丢失后安全重试。卸载时中止轮询并忽略迟到响应，保留服务端工作，重开时从会话存储恢复。明确失败或取消的任务同时提供同 ID 重试和独立的新建操作；后者仅以新请求/智能体 ID 及默认值替换浏览器草稿，不删除或修改原服务端任务与资源。运行中和提交结果不明时，弹窗不允许开始另一个身份。成功后刷新原地域。复用本地化 BaseUI/Studio 组件、键盘/输入法行为及语义主题变量。`ModalLayout.footer` 是可选 React 节点：省略保留原操作，`null` 隐藏页脚；原调用者不变。参见[终态任务新建修复](../../prd-spec/bugfixes/studio-mpa-creation/2026-09-24-start-another-agent-after-failure.zh.md)。
 
 ## HTTP 契约
 

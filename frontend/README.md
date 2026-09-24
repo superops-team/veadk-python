@@ -1500,6 +1500,10 @@ The dialog now uses three steps: basics (generated read-only ID, description and
 
 创建弹窗现分为基础信息（生成的只读 ID、描述和镜像）、PostgreSQL 自动准备、可选 OpenViking HTTPS 地址/资源 ID/API Key 三步，并提供对应的火山引擎控制台入口。服务端通过部署凭据获取 PostgreSQL Workspace 连接。仅在 HTTPS 地址、资源 ID 和遮罩的 API Key 三项均填写时启用 OpenViking；三项全空时，新 Runtime 不注入其四个变量，也不继承模板或参考 Runtime 中的旧值。密钥不保存到浏览器草稿或任务 SQLite。仅最后一步提交，非密钥草稿与请求身份在同一浏览器会话中可恢复。参见[创建契约](../specs/studio-mpa-creation/README.zh.md)。
 
+After a confirmed failure or cancellation, the dialog retains the old task for same-ID retry. “Create another agent” generates new request and agent IDs and returns to the first step. It replaces only the browser draft, not any cloud resources from the previous attempt. Running or uncertain submissions cannot switch identities.
+
+失败或取消后，创建弹窗保留原任务供同 ID 重试；点击“新建另一个智能体”会生成新的请求及智能体 ID 并返回第一步。该操作只替换浏览器草稿，不会删除上次创建的云资源。运行中或提交结果不明时不能切换到新身份。
+
 MPA 创建弹窗默认填入服务端配置中的 MPA 和 Worker 镜像。有智能体管理权限的用户可以修改或留空使用默认值。提交后锁定输入，重试和浏览器会话恢复保留原请求及实际镜像快照。不接受网址或凭据。这些输入只影响本次创建，不修改服务端内置配置或已有智能体。参见[托管创建说明](../veadk/integrations/mpa/managed/README.zh.md)。
 
 MPA A2A responses now group adjacent assistant fragments into one reply with a single action row. Copy/share include the grouped response; feedback remains attached to the final answer event, and the trace entry retains the session timeline through the latest fragment. Reported request tokens are deduplicated by usage source/event, including trailing usage updates. General-agent rendering is unchanged.
