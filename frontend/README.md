@@ -1741,3 +1741,27 @@ it. Deleting a default set stops feedback writes to that set and prevents backgr
 List filtering and counts currently scan only the selected Runtime's objects,
 with bounded parallel reads. This is intended for the initial dataset sizes;
 large collections will need a separate rebuildable query index.
+
+### MPA Feishu multi-bot accounts / MPA 飞书多机器人
+
+Runtimes advertising `multiBotChannels: ["feishu"]` expose a robot selector in
+Automations → Messaging channels → MPA agent messaging channels. Add bots with
+QR or manual binding, then manage enablement, unbinding, diagnostics and group
+permissions for the selected `appId`. Adding a different bot preserves existing
+accounts. Feishu scheduled tasks select an enabled delivery bot; switching to
+Web delivery removes `delivery.appId`. Channel management requires Studio
+administrator access. A failed or unauthorized account lookup blocks Feishu
+task submission instead of selecting an arbitrary bot. Older runtimes keep the
+single-bot interface. Compatible MPA images must be deployed separately.
+
+Runtime 声明 `multiBotChannels: ["feishu"]` 后，可在“自动化 → 消息渠道 →
+MPA 智能体消息渠道”中选择机器人。扫码或手动添加后，启停、解绑、诊断和群权限
+均按选中的 `appId` 管理；新增不同机器人保留既有绑定。飞书定时任务须选择已启用
+的投递机器人，切换 Web 投递会清除 `delivery.appId`。渠道管理需要 Studio 管理员
+权限；账号读取失败或无权限时阻止飞书任务提交，不任意选择机器人。旧 Runtime
+保持单机器人界面，兼容的 MPA 镜像需另行部署。
+
+Contracts and verification / 契约与验证：
+[channels](../specs/mpa-channels/README.md),
+[tasks](../specs/studio-mpa-cron-tasks/README.md),
+[design](../prd-spec/features/mpa-feishu-multi-bot/2026-10-09-studio-multi-bot.md).

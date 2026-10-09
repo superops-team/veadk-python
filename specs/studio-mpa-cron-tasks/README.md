@@ -34,3 +34,8 @@ See the [implementation and acceptance record](../../prd-spec/features/studio-mp
 The task editor hides executor Agent input. New tasks automatically use the selected Runtime ID as agentId; edits/copies preserve the original value.
 
 New task creation omits agentId. The Runtime resolves the configured Agent display name, falling back to its runtime agent name. Explicit IDs and edit/copy values remain unchanged. This supersedes the previous Runtime ID default. Approved by the user on 2026-09-15; review found no authentication or execution routing changes.
+
+
+## Feishu delivery accounts (2026-10-09)
+
+For multi-bot-capable Runtime, create/edit/copy explicitly selects an enabled Feishu appId and saves delivery.appId. Multiple accounts never default to the first; unchanged delivery preserves thread metadata, and Web delivery removes appId. Missing/disabled accounts and permission/read failures block Feishu save with an actionable error. Legacy runtimes retain existing behavior. Bot choices use existing administrator-authorized channel APIs, without weakening task principal boundaries or falling back to another account. See [design](../../prd-spec/features/mpa-feishu-multi-bot/2026-10-09-studio-multi-bot.md).
