@@ -1,4 +1,4 @@
 interface:
-  display_name: "Create MPA Agent"
-  short_description: "Provision MPA agents with VeADK and account credentials"
-  default_prompt: "Use $mpa-agent-create to plan and create an MPA agent with my configured deployment credentials."
+  display_name: "创建 MPA 智能体"
+  short_description: "使用 VeADK 和已配置的 AK/SK 创建或恢复 MPA 智能体"
+  default_prompt: "使用 $mpa-agent-create，通过我已配置的部署凭据预览计划并创建 MPA 智能体。"

@@ -1,7 +1,5 @@
 # MPA 创建操作说明
 
-[English](operations.md)。
-
 ## 执行环境
 
 通过包含此 Skill 的 VeADK 分支/版本安装其声明的依赖，使用支持的 Python 版本（Python 3.10 或以上）。使用该环境的 Python 执行脚本，不假定无关的旧 PyPI 版本兼容。此目录可独立分发，但不打包 VeADK，也不自动给通用 ADK Agent 添加工具。在具备命令执行能力的 Agent/Worker 中加载/挂载为本地 Skill，或将目录打包上传 Skill Space。保持 `SKILL.md`、`scripts/` 和 `references/` 一起分发。
@@ -25,13 +23,13 @@ AK/SK 需要 STS 调用身份、IAM 查询/创建/读取/绑定策略与传递�
 `SKILL_DIR` 是安装/挂载的 Skill 目录，不是固定机器路径。
 
 ```bash
-python "$SKILL_DIR/scripts/create_mpa.py" plan --name Support-Agent --description "Team assistant"
+python "$SKILL_DIR/scripts/create_mpa.py" plan --name Support-Agent --description "团队助手"
 ```
 
 读取返回的 `requestId`，将非敏感变量 `REQUEST_ID` 设为该值。完成授权的计划审阅后：
 
 ```bash
-python "$SKILL_DIR/scripts/create_mpa.py" create --name Support-Agent --description "Team assistant" --request-id "$REQUEST_ID" --yes
+python "$SKILL_DIR/scripts/create_mpa.py" create --name Support-Agent --description "团队助手" --request-id "$REQUEST_ID" --yes
 ```
 
 需要时可指定带版本的 MPA/Worker 镜像，计划和创建传相同选项：

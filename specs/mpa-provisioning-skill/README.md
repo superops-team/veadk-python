@@ -16,4 +16,6 @@
 - CON-6: Built-in region/default images, shared Workspaces/network/APIG and agent-specific database/Skill Space/Worker/Runtime behavior follow the current profile. `latest` is a tag, not an immutable image version. Product enablement, IAM authorization, quota, model access and endpoint reachability remain prerequisites. Existing Studio/CLI contracts are unchanged.
 
 ## Verification
+Skill instructions, discovery text, UI metadata and operational reference use Chinese at the user's request. Executable identifiers and command syntax remain unchanged; this localization does not alter CON-1–CON-6. The design and this component spec retain their English/Chinese counterparts.
+
 Helper tests isolate credentials/state/child processes and never call a provider. Targeted managed regression tests verify the reused boundaries; Skill validation checks packaging metadata. Live provider creation is a separate authorized smoke procedure and is not implied by local tests. See the design for actual outcomes.
